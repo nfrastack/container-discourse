@@ -1,7 +1,7 @@
 
 
 ARG DISTRO="debian"
-ARG DISTRO_VARIANT="bookworm"
+ARG DISTRO_VARIANT="trixie"
 
 FROM docker.io/tiredofit/nginx:${DISTRO}-${DISTRO_VARIANT}
 LABEL maintainer="Dave Conroy (github.com/tiredofit)"
