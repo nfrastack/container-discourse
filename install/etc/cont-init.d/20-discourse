@@ -4,6 +4,33 @@ source /assets/functions/00-container
 prepare_service
 PROCESS_NAME="discourse"
 
+cat <<EOF
+
+*************************************************************************************************
+*                                                                                               *
+*                    END OF LIFE NOTICE OCTOBER 09, 2025                                        *
+*                               tiredofit/discourse                                             *
+*                                                                                               *
+* This image is no longer maintained as of and will not receive updates.                        *
+*                                                                                               *
+* A successor image is available at:                                                            *
+*                                                                                               *
+* Repository | Documentation:                                                                   *
+*   - https://github.com/nfrastack/container-discourse                                          *
+*                                                                                               *
+* Image Registries:                                                                             *
+*   - https://hub.docker.com/r/nfrastack/discourse                                              *
+*   - https://github.com/nfrastack/container-moodle/pkgs/container/container-discourse          *
+*                                                                                               *
+* Please visit https://nfrastack.com for more information.                                      *
+*                                                                                               *
+*************************************************************************************************
+
+EOF
+
+sleep 15
+
+
 bootstrap_filesystem
 configure_discourse
 custom_files /app/
