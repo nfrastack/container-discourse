@@ -1,16 +1,16 @@
 
 
 ARG DISTRO="debian"
-ARG DISTRO_VARIANT="bookworm"
+ARG DISTRO_VARIANT="trixie"
 
-FROM docker.io/tiredofit/nginx:${DISTRO}-${DISTRO_VARIANT}
+FROM docker.io/nfrastack/nginx:${DISTRO}_${DISTRO_VARIANT}
 LABEL maintainer="Dave Conroy (github.com/tiredofit)"
 
 ARG DISCOURSE_VERSION
 ARG RUBY_VERSION
 
 ### Environment Variables
-ENV DISCOURSE_VERSION=${DISCOURSE_VERSION:-"v3.5.0"} \
+ENV DISCOURSE_VERSION=${DISCOURSE_VERSION:-"v3.5.3"} \
     RUBY_VERSION=${RUBY_VERSION:-"3.3.9"} \
     RUBY_ALLOCATOR=/usr/lib/libjemalloc.so.2 \
     RAILS_ENV=production \
@@ -21,11 +21,11 @@ ENV DISCOURSE_VERSION=${DISCOURSE_VERSION:-"v3.5.0"} \
     NGINX_MODE=PROXY \
     NGINX_PROXY_URL=http://127.0.0.1:3000 \
     NGINX_ENABLE_CREATE_SAMPLE_HTML=FALSE \
-    IMAGE_NAME="tiredofit/discourse" \
-    IMAGE_REPO_URL="https://github.com/tiredofit/docker-discourse/"
+    IMAGE_NAME="nfrastack/discourse" \
+    IMAGE_REPO_URL="https://github.com/nfrastack/container-discourse/"
 
 ### Install Dependencies
-RUN source /assets/functions/00-container && \
+RUN source /container/base/functions/container/init && \
     BUILD_DEPS=" \
                 build-essential \
                 g++ \
@@ -50,10 +50,9 @@ RUN source /assets/functions/00-container && \
     set -x && \
     addgroup --gid 9009 --system discourse && \
     adduser --uid 9009 --gid 9009 --home /dev/null --gecos "Discourse" --shell /sbin/nologin --disabled-password discourse && \
-    curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add - && \
-    echo "deb https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodejs.list && \
-    curl -ssL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    echo "deb http://apt.postgresql.org/pub/repos/apt/ $(cat /etc/os-release |grep "VERSION=" | awk 'NR>1{print $1}' RS='(' FS=')')-pgdg main" > /etc/apt/sources.list.d/postgres.list && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt/ $(cat /etc/os-release |grep "VERSION=" | awk 'NR>1{print $1}' RS='(' FS=')')-pgdg main" > /etc/apt/sources.list.d/postgres.list && \
     package update && \
     package upgrade -y && \
     package install \
@@ -67,12 +66,13 @@ RUN source /assets/functions/00-container && \
                 imagemagick \
                 jhead \
                 jpegoptim \
-                libicu72 \
+                libicu76 \
                 libjemalloc2 \
                 libjpeg-turbo-progs \
                 libpq5 \
                 libssl3 \
                 libxml2 \
+                netcat-openbsd \
                 nodejs \
                 npm \
                 optipng \
@@ -127,8 +127,6 @@ RUN source /assets/functions/00-container && \
     find /app/vendor/bundle -name tmp -type d -exec rm -rf {} + && \
     curl -sSL https://git.io/GeoLite2-ASN.mmdb -o /app/vendor/data/GeoLite2-ASN.mmdb && \
     curl -sSL https://git.io/GeoLite2-City.mmdb -o /app/vendor/data/GeoLite2-City.mmdb && \
-    sed  -i "5i\ \ require 'uglifier'" /app/config/environments/production.rb && \
-    sed -i "s|config.assets.js_compressor = :uglifier|config.assets.js_compressor = Uglifier.new(harmony: true)|g" /app/config/environments/production.rb  && \
     ln -sf "$(which convert)" "/usr/bin/magick" && \
     \
     mkdir -p /assets/discourse/plugins && \
