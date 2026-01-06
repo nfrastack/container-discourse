@@ -1,6 +1,7 @@
 #!/command/with-contenv bash
 
-source /assets/functions/00-container
+source /container/base/functions/container/init
+source /container/functions/20-discourse
 prepare_service
 PROCESS_NAME="discourse"
 

@@ -1,6 +1,7 @@
 #!/command/with-contenv bash
 
-source /assets/functions/00-container
+source /container/base/functions/container/init
+source /container/functions/20-discourse
 prepare_service
 PROCESS_NAME="rails"
 
@@ -13,8 +14,8 @@ export UNICORN_WORKERS=${UNICORN_WORKERS}
 
 cd /app/
 print_start "Starting Unicorn - Discourse version ${DISCOURSE_VERSION}"
-s6-setuidgid discourse \
-                    exec bin/unicorn \
+exec s6-setuidgid discourse \
+                    bin/unicorn \
                                     -E production \
                                     -o 0.0.0.0 \
                                     -p "${LISTEN_PORT}" \
