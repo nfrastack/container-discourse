@@ -1,3 +1,13 @@
+## 3.3.0pre 2025-10-15++ <code at nfrastack dot com>
+
+   ### Changed
+      - Switched base image to nfrastack/nginx:8.x
+      - Debian Trixie
+      - Node 24
+      - Ruby 3.4.8
+      - Discourse 26.2.0
+      - No plugin support, WIP
+
 ## 3.2.99 2025-10-09 <dave at tiredofit dot ca>
 
 Add EOL notice and deprecate image
@@ -233,7 +243,7 @@ This has breaking changes all over the image, specifically related to paths and 
 
 ## 2.0.2 2018-08-26 <dave at tiredofit dot ca>
 
-* Bump to 2.0.4 
+* Bump to 2.0.4
 
 ## 2.01 2018-07-10 <dave at tiredofit dot ca>
 

@@ -1,72 +1,56 @@
-#!/usr/bin/with-contenv bash
+# SPDX-FileCopyrightText: © 2026 Nfrastack <code@nfrastack.com>
+#
+# SPDX-License-Identifier: MIT
 
-bootstrap_filesystem() {
-    if [ ! -d "${DATA_PATH}" ]; then
-        mkdir -p "${DATA_PATH}"
-    fi
-    if [ $(stat -c %U "${DATA_PATH}") != "discourse" ] ; then chown discourse:discourse "${DATA_PATH}" ; fi
+discourse_bootstrap_filesystem() {
+    create_folder \
+                    "/app/tmp,\
+                    /app/tmp/cache,\
+                    /app/tmp/pids,\
+                    ${BACKUP_PATH},\
+                    ${DATA_PATH},\
+                    ${LOG_PATH},\
+                    ${PLUGIN_PATH},\
+                    ${UNICORN_LOG_PATH},\
+                    ${UPLOADS_PATH}"\
+                    "${DISCOURSE_USER}":"${DISCOURSE_GROUP}" 750
 
-    if [ ! -d "${BACKUP_PATH}" ]; then
-        mkdir -p "${BACKUP_PATH}"
-    fi
-    if [ "${BACKUP_PATH}" != "/app/public/backups/" ] ; then
+    if [ "${BACKUP_PATH%/}" != "/app/public/backups" ] ; then
         rm -rf /app/public/backups
-        ln -sf "${BACKUP_PATH}" /app/public/backups
+        ln -sf "${BACKUP_PATH%/}" /app/public/backups
     fi
-    if [ $(stat -c %U "${BACKUP_PATH}") != "discourse" ] ; then chown discourse:discourse "${BACKUP_PATH}" ; fi
 
-    if [ ! -d "${LOG_PATH}" ] ; then
-       mkdir -p "${LOG_PATH}"
-    fi
-        if [ $(stat -c %U "${LOG_PATH}") != "discourse" ] ; then chown -R discourse:discourse "${LOG_PATH}" ; fi
-
-    if [ "${LOG_PATH}" != "/app/log/" ] ; then
+    if [ "${LOG_PATH%/}" != "/app/log" ] ; then
         rm -rf /app/log
-        ln -sf "${LOG_PATH}" /app/log
+        ln -sf "${LOG_PATH%/}" /app/log
     fi
 
-    create_logrotate discourse "${LOG_PATH}"/${LOG_FILE} discourse discourse
-    create_logrotate discourse_unicorn "${UNICORN_LOG_PATH}"/${UNICORN_LOG_FILE} discourse discourse
-    create_logrotate discourse_unicorn_error "${UNICORN_LOG_PATH}"/${UNICORN_LOG_ERROR_FILE} discourse discourse
-    create_logrotate discourse_sidekiq "${LOG_PATH}"/${SIDEKIQ_LOG_FILE} discourse discourse
+    create_logrotate discourse "${LOG_PATH%/}"/${LOG_FILE} "${DISCORSE_USER}" "${DISCOURSE_GROUP}"
+    create_logrotate discourse_unicorn "${UNICORN_LOG_PATH%/}"/"${UNICORN_LOG_FILE}" "${DISCORSE_USER}" "${DISCOURSE_GROUP}"
+    create_logrotate discourse_unicorn_error "${UNICORN_LOG_PATH%/}"/"${UNICORN_LOG_ERROR_FILE}" "${DISCORSE_USER}" "${DISCOURSE_GROUP}"
+    create_logrotate discourse_sidekiq "${LOG_PATH%/}"/"${SIDEKIQ_LOG_FILE}" "${DISCORSE_USER}" "${DISCOURSE_GROUP}"
 
-    #chown -R discourse:discourse /app "${LOG_PATH}"
-
-    if [ ! -d "${PLUGIN_PATH}" ]; then
-        mkdir -p "${PLUGIN_PATH}"
-    fi
-    if [ "${PLUGIN_PATH}" != "/app/plugins/" ] ; then
+    if [ "${PLUGIN_PATH%/}" != "/app/plugins" ] ; then
         rm -rf /app/plugins
-        ln -sf "${PLUGIN_PATH}" /app/plugins
-    fi
-    if [ $(stat -c %U "${PLUGIN_PATH}") != "discourse" ] ; then chown discourse:discourse "${PLUGIN_PATH}" ; fi
-
-    if [ ! -d "${UPLOADS_PATH}" ]; then
-        mkdir -p "${UPLOADS_PATH}"
+        ln -sf "${PLUGIN_PATH%/}" /app/plugins
     fi
 
-    if [ "${UPLOADS_PATH}" != "/app/public/uploads/" ] ; then
+    if [ "${UPLOADS_PATH%/}" != "/app/public/uploads" ] ; then
         rm -rf /app/public/uploads
-        ln -sf "${UPLOADS_PATH}" /app/public/uploads
+        ln -sf "${UPLOADS_PATH%/}" /app/public/uploads
     fi
 
-    if [ $(stat -c %U "${UPLOADS_PATH}") != "discourse" ] ; then chown discourse:discourse "${UPLOADS_PATH}" ; fi
-
-    mkdir -p \
-		/app/tmp/cache \
-        /app/tmp/pids
-
-    chown -R discourse:discourse /app/tmp
+    git config --global --add safe.directory /app
 }
 
-configure_discourse() {
+discourse_configure_application() {
     sanity_db postgres
     db_ready postgres
     sanity_db redis
     db_ready redis
-
-    cat <<EOF | silent sudo -u discourse tee /app/config/discourse.conf
-## tiredofit/discourse Configuration
+    ## NOTE Should this be owned by root
+    write_file root:"${DISCOURSE_GROUP}" /app/config/discourse.conf:640 <<EOF
+## nfrastack/discourse Configuration
 ## If you want to use your own configuration files set SETUP_TYPE=MANUAL when starting container
 ## Last Generated on $(TZ=${TIMEZONE} date +'%Y-%m-%d %H:%M:%S %Z')
 
@@ -119,7 +103,6 @@ load_mini_profiler = ${ENABLE_MINIPROFILER,,}
 #maxmind_license_key = ${MAXMIND_LICENSE_KEY}
 
 #### NOT DEALING WITH THIS RIGHT NOW
-
 #### Every how many requests should MP profile a request (aka take snapshot)
 #### Default is never
 ###mini_profiler_snapshots_period = 0
@@ -312,216 +295,55 @@ load_mini_profiler = ${ENABLE_MINIPROFILER,,}
 EOF
 
     sed -i \
-            -e "s|config.time_zone = '.*'|config.time_zone = '${TIMEZONE}'|g" \
+                -e "s|config.time_zone = '.*'|config.time_zone = '${TIMEZONE}'|g" \
             /app/config/application.rb
 
     sed -i \
-            -e "s|config.public_file_server.enabled = .*|config.public_file_server.enabled = ${SERVE_STATIC_ASSETS,,}|g" \
-            -e "s|config.log_level = .*|config.log_level = :${LOG_LEVEL}|g" \
-            -e "/config.log_level/a\  config.logger = Logger.new(Rails.root.join('log', '${LOG_PATH}/${LOG_FILE}'))" \
+                -e "s|config.public_file_server.enabled = .*|config.public_file_server.enabled = ${SERVE_STATIC_ASSETS,,}|g" \
+                -e "s|config.log_level = .*|config.log_level = :${LOG_LEVEL}|g" \
+                -e "/config.log_level/a\  config.logger = Logger.new(Rails.root.join('log', '${LOG_PATH%/}/${LOG_FILE}'))" \
             /app/config/environments/production.rb
 
     sed -i \
-                -e "s|unicorn_stderr_path = .*|unicorn_stderr_path = \"${UNICORN_LOG_PATH}/${UNICORN_LOG_ERROR_FILE}\"|g" \
-                -e "s|unicorn_stdout_path = .*|unicorn_stdout_path = \"${UNICORN_LOG_PATH}/${UNICORN_LOG_FILE}\"|g" \
+                -e "s|unicorn_stderr_path = .*|unicorn_stderr_path = \"${UNICORN_LOG_PATH%/}/${UNICORN_LOG_ERROR_FILE}\"|g" \
+                -e "s|unicorn_stdout_path = .*|unicorn_stdout_path = \"${UNICORN_LOG_PATH%/}/${UNICORN_LOG_FILE}\"|g" \
                 -e "/^listen ENV/d" \
                 -e "s#ENV[\"UNICORN_WORKERS\"] || 3#ENV[\"UNICORN_WORKERS\"] || ${UNICORN_WORKERS}#g" \
             /app/config/unicorn.conf.rb
 }
 
-configure_plugins() {
-    if var_true "${PLUGIN_ENABLE_AUTOMATION}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/automation ] ; then
-            print_notice "Enabling Plugin: Automation"
-            cp -R /assets/discourse/plugins/automation /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_ASSIGN}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/assign ] ; then
-            print_notice "Enabling Plugin: Assign"
-            cp -R /assets/discourse/plugins/assign /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_CHAT_INTEGRATION}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/chat ] ; then
-            print_notice "Enabling Plugin: Chat Integration"
-            cp -R /assets/discourse/plugins/chat /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_CHECKLIST}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/checklist ] ; then
-            print_notice "Enabling Plugin: Checklist"
-            cp -R /assets/discourse/plugins/checklist /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_DETAILS}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/discourse-details ] ; then
-            print_notice "Enabling Plugin: Details"
-            cp -R /assets/discourse/plugins/discourse-details /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_EVENTS}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/events ] ; then
-            print_notice "Enabling Plugin: Events"
-            cp -R /assets/discourse/plugins/events /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_FORMATTING_TOOLBAR}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/formatting-toolbar ] ; then
-            print_notice "Enabling Plugin: Formatting Toolbar"
-            cp -R /assets/discourse/plugins/formatting-toolbar /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_FOOTNOTES}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/footnote ] ; then
-            print_notice "Enabling Plugin: Footnote"
-            cp -R /assets/discourse/plugins/footnote /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_LAZY_VIDEOS}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/lazy-videos ] ; then
-            print_notice "Enabling Plugin: Lazy YouTube"
-            cp -R /assets/discourse/plugins/discourse-lazy-videos /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_LOCAL_DATES}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/local-dates ] ; then
-            print_notice "Enabling Plugin: Local Dates"
-            cp -R /assets/discourse/plugins/discourse-local-dates /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_MERMAID}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/mermaid ] ; then
-            print_notice "Enabling Plugin: Mermaid"
-            cp -R /assets/discourse/plugins/discourse-mermaid /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_NARRATIVE_BOT}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/discourse-narrative-bot ] ; then
-            print_notice "Enabling Plugin: Narrative Bot"
-            cp -R /assets/discourse/plugins/discourse-narrative-bot /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_POLLS}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/polls ] ; then
-            print_notice "Enabling Plugin: Polls"
-            cp -R /assets/discourse/plugins/poll /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_POST_VOTING}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/post-voting ] ; then
-            print_notice "Enabling Plugin: Post Voting"
-            cp -R /assets/discourse/plugins/post-voting /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_PRESENCE}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/discourse-presence ] ; then
-            print_notice "Enabling Plugin: Presence"
-            cp -R /assets/discourse/plugins/discourse-presence /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_PUSH_NOTIFICATIONS}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/push ] ; then
-            print_notice "Enabling Plugin: Push Notifications"
-            cp -R /assets/discourse/plugins/push /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_STYLEGUIDE}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/styleguide ] ; then
-            print_notice "Enabling Plugin: Style Guide"
-            cp -R /assets/discourse/plugins/styleguide /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_SAME_ORIGIN}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/allow-same-origin ] ; then
-            print_notice "Enabling Plugin: Same Origin"
-            cp -R /assets/discourse/plugins/allow-same-origin /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_SPOILER_ALERT}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/spoiler-alert ] ; then
-            print_notice "Enabling Plugin: Spoiler Alert"
-            cp -R /assets/discourse/plugins/spoiler-alert /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_SOLVED}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/solved ] ; then
-            print_notice "Enabling Plugin: Solved"
-            cp -R /assets/discourse/plugins/solved /app/plugins/
-        fi
-    fi
-
-    if var_true "${PLUGIN_ENABLE_VOTING}" ; then
-        plugin_installed=true
-        if [ ! -d ${PLUGIN_PATH}/voting ] ; then
-            print_notice "Enabling Plugin: Voting"
-            cp -R /assets/discourse/plugins/voting /app/plugins/
-        fi
-    fi
-
-    chown -R discourse:discourse /app/plugins
+discourse_configure_plugins() {
+    :
 }
 
-migrate_db() {
+discourse_migrate_db() {
+    ## TODO Add version check instead
     if var_true "${ENABLE_DB_MIGRATE}" ; then
-        print_info "Migrating Database - This may take a bit.."
+        print_info "Running database migrations"
         cd /app
+        #sudo -HEu "${DISCOURSE_USER}" bundle exec rake db:migrate
         silent bundle exec rake db:migrate
     fi
 }
 
-compile_assets() {
+discourse_compile_assets() {
     if var_true "${ENABLE_PRECOMPILE_ASSETS}" || var_true "${plugin_installed}" ; then
-        print_info "Precompiling Assets - This may take a bit.."
+        print_info "Precompiling Assets - This takes a while.."
         cd /app
+        #sudo -HEu "${DISCOURSE_USER}" git config --add safe.directory /app && \
+        ## TODO THIS THROWS MASSIVE PROBLEMS BEWARE
+        #sudo -HEu "${DISCOURSE_USER}" bundle exec rake assets:precompile
+        #git config --add safe.directory /app && \
+
         silent bundle exec rake assets:precompile
+        print_info "Precompiling Assets completed"
     fi
-    chown -R discourse:discourse \
+    chown -R "${DISCOURSE_USER}":"${DISCOURSE_GROUP}" \
                                 /app/ \
                                 "${LOG_PATH}"
-
 }
 
-console_exec() {
+discourse_console_exec() {
     local rails_cmd
     rails_cmd="$(</dev/stdin)"
     #print_debug "Executing script with console environment: ${rails_cmd}"
@@ -534,8 +356,8 @@ EOF
     )"
 }
 
-create_admin_user() {
-    console_exec <<EOF
+discourse_create_admin_user() {
+    discourse_console_exec <<EOF
 admin = User.find_by_email("${ADMIN_EMAIL}")
 admin = User.new if admin.nil?
 admin.username = "${ADMIN_USER}"
@@ -554,6 +376,14 @@ admin.activate
 EOF
 }
 
-setup_shell() {
-    echo "alias rake=\"cd /app; sudo -Eu discourse bin/rake\"" >> /root/.bashrc
+discourse_setup_bash() {
+        write_file -a /root/.bashrc <<EOF
+# nfrastack: only run interactive shell snippets
+case "\$-" in
+    *i*) ;;
+    *) return;;
+esac
+
+alias rake="cd /app; sudo -Eu ${DISCOURSE_USER} bin/rake"
+EOF
 }

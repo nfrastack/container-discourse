@@ -1,15 +1,35 @@
-name: "build_image"
-
 on:
   push:
     paths:
-      - "**"
-      - "!README.md"
-
+      - '**'
+      - '!CHANGELOG.md'
+      - '!/examples/*'
+      - '!LICENSE'
+      - '!README.md'
+      - '!/zabbix_templates/*'
 jobs:
-  build:
-    uses: tiredofit/github_actions/.github/workflows/default_amd64.yml@main
-    #uses: tiredofit/github_actions/.github/workflows/default_amd64.yml@main
-    #uses: tiredofit/github_actions/.github/workflows/default_amd64_armv7_arm64.yml@main
-    #uses: tiredofit/github_actions/.github/workflows/default_amd64_arm64.yml@main
+  prepare:
+    uses: nfrastack/gha/.github/workflows/artifacts-encrypt.yml@main
     secrets: inherit
+  build:
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - { distro: "debian", distro_variant: "trixie", latest: "true", arch: "linux/amd64,linux/arm64" }
+    uses: nfrastack/gha/.github/workflows/container-build_generic.yml@main
+    with:
+      base_image: "ghcr.io/nfrastack/container-nginx"
+      tag: ${{ matrix.tag || '' }}
+      distro: ${{ matrix.distro }}
+      distro_variant: ${{ matrix.distro_variant }}
+      image_variant: ${{ matrix.image_variant || '' }}
+      latest: ${{ matrix.latest }}
+      distro_latest: ${{ matrix.distro_latest }}
+      platforms: ${{ matrix.arch }}
+    secrets: inherit
+  cleanup:
+    needs: [ build ]
+    uses: nfrastack/gha/.github/workflows/artifacts-remove.yml@main
+    secrets: inherit
+

@@ -1,0 +1,21 @@
+#!/command/with-contenv bash
+# SPDX-FileCopyrightText: © 2026 Nfrastack <code@nfrastack.com>
+#
+# SPDX-License-Identifier: MIT
+
+source /container/base/functions/container/init
+prepare_service
+SERVICE_NAME="discourse"
+
+discourse_bootstrap_filesystem
+discourse_configure_application
+custom_files /app/
+custom_scripts
+discourse_configure_plugins
+discourse_setup_bash
+discourse_migrate_db
+discourse_compile_assets
+discourse_create_admin_user
+chown "${DISCOURSE_USER}":"${DISCOURSE_GROUP}" /app
+
+liftoff

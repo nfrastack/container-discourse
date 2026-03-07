@@ -1,0 +1,247 @@
+#!/command/with-contenv bash
+# SPDX-FileCopyrightText: © 2026 Nfrastack <code@nfrastack.com>
+#
+# SPDX-License-Identifier: MIT
+
+source /container/defaults/20-discourse
+
+disable_plugin() {
+    if [ -n "${1}" ]; then
+        case "${1}" in
+        #    "all" )
+        #        echo "**Disabling All Plugins"
+        #        for module in "${plugins_available}"/* ; do
+        #            :
+        #        done
+        #    ;;
+        #    "core" )
+        #        echo "** Disabling Core Plugins"
+        #    ;;
+        #    "optional" )
+        #        echo "** Disabling Optional Plugins"
+        #    ;;
+            reset )
+                rm -rf "${PLUGIN_PATH%/}"/enabled/*
+            ;;
+            * )
+                local plugin_name="$1"
+                local enabled_path="${PLUGIN_PATH%/}/enabled"
+                local plugin_link="${enabled_path}/${plugin_name}"
+                # If symlink exists in enabled_path, remove it
+                if [ -L "${plugin_link}" ]; then
+                    rm -f "${plugin_link}"
+                    echo "Disabled plugin: ${plugin_name} (symlink removed from enabled)"
+                    return 0
+                else
+                    echo "** Requested disabling '${plugin_name}' plugin however it doesn't exist as a symlink"
+                fi
+            ;;
+        esac
+    else
+       echo "** Disable Plugin"
+       #echo "Commands: all | core | optional | (pluginname)"
+       echo "Commands: reset | (pluginname)"
+    fi
+}
+
+enable_plugin () {
+    if [ -n "${1}" ]; then
+        case "${1}" in
+                #"all" )
+                #    echo "** Enabling All Plugins"
+                #;;
+                #"core" )
+                #    echo "** Activating Core Plugins"
+                #;;
+                #"optional" )
+                #    echo "** Activating Optional Plugins"
+                #;;
+                * )
+                    local plugin_name="$1"
+                    local core_path="/container/data/discourse/plugins"
+                    local enabled_path="${PLUGIN_PATH}/enabled"
+                    local plugin_target="${core_path}/${plugin_name}"
+                    local plugin_link="${enabled_path}/${plugin_name}"
+
+                    sudo -u "${DISCOURSE_USER}" mkdir -p "${enabled_path}"
+
+                    # If symlink already exists in enabled_path, do nothing
+                    if [ -L "${plugin_link}" ]; then
+                        echo "Plugin '${plugin_name}' already enabled (symlink exists in enabled)."
+                        return 0
+                    fi
+
+                    # If plugin exists in core_path and is a directory, symlink it
+                    if [ -d "${plugin_target}" ]; then
+                        sudo -u "${DISCOURSE_USER}" ln -sf "${plugin_target}" "${plugin_link}"
+                        echo "Enabled plugin: ${plugin_name} (symlinked to enabled)"
+                        return 0
+                    fi
+
+                    # If plugin exists in PLUGIN_PATH and is a directory, symlink it to enabled_path if not already linked
+                    if [ -d "${PLUGIN_PATH}/${plugin_name}" ]; then
+                        if [ -L "${plugin_link}" ]; then
+                            echo "Plugin '${plugin_name}' already enabled (symlink exists in enabled)."
+                            return 0
+                        fi
+                        ln -sf "${PLUGIN_PATH}/${plugin_name}" "${plugin_link}"
+                        echo "Enabled plugin: ${plugin_name} (symlinked from PLUGIN_PATH to enabled)"
+                        return 0
+                    fi
+                    echo "** Requested enabling '${plugin_name}' plugin however it doesn't exist in core or PLUGIN_PATH!"
+                    return 1
+                ;;
+        esac
+    else
+       echo "** Enable Plugin"
+       #echo "Commands: all | core | optional | (plugin_name)"
+       echo "Commands: (plugin_name)"
+    fi
+}
+
+info() {
+    if [ -n "${1}" ]; then
+        case "${1,,}" in
+            image )
+                echo "${IMAGE_NAME}"
+                echo "$(head -n1 /container/build/"${IMAGE_NAME/\//_}"/CHANGELOG.md | awk '{print $2}')"
+            ;;
+            help )
+                echo "Commands: image | path | version"
+            ;;
+            path )
+                if [ "${2}" ]; then
+                    case "${2,,}" in
+                        help )
+                            echo "Commands: data | plugins | uploads | backup | logs"
+                        ;;
+                        data )
+                            echo "${DATA_PATH}"
+                        ;;
+                        plugins* )
+                            echo "${PLUGIN_PATH}"
+                        ;;
+                        uploads* )
+                            echo "${UPLOADS_PATH}"
+                        ;;
+                        backup* )
+                            echo "${BACKUP_PATH}"
+                        ;;
+                        log* )
+                            echo "${LOG_PATH}"
+                        ;;
+                    esac
+                else
+                    cat << EOF
+Data:    ${DATA_PATH}
+Plugins: ${PLUGIN_PATH}
+Uploads: ${UPLOADS_PATH}
+Backup:  ${BACKUP_PATH}
+Logs:    ${LOG_PATH}
+EOF
+                fi
+            ;;
+            "version" )
+                echo "$(grep -o "ADD: Discourse .* |" /container/build/${IMAGE_NAME/\//_}/build.log | awk '{print $3}')"
+            ;;
+        esac
+    else
+        echo "** Info"
+        echo "Commands: help | image | path | version"
+    fi
+}
+
+list_plugin() {
+    if [ -n "${1}" ]; then
+        case "${1,,}" in
+            #"all" )
+            #    echo "** Listing All Plugins"
+            #;;
+            "core"  )
+                echo "** Listing Core Plugins"
+                for plugin in /container/data/discourse/plugins/*; do
+                    if [ -d "${plugin}" ]; then
+                        echo "$(basename "$plugin")"
+                    fi
+                done
+                ## at some point we want to parse this list and check variables to see if they are enabled or not
+            ;;
+            #"optional" )
+            #    echo "** Listing Optional Plugins"
+            #;;
+        esac
+    else
+       echo "** List Plugins"
+       #echo "Commands: all | core | optional"
+       echo "Commands: core"
+    fi
+}
+
+display_help() {
+    cat <<EOF
+
+    Discourse Companion Tool
+    Syntax: $(basename $0) <command> <argument>
+
+    Command: enable | disable | list | help
+       install - Install a plugin to system
+       remove - Remove a plugin from system
+       update - Update a plugin
+       enable - Enable a module for usage
+       disable - Disable a mdule for usage
+       info - Get information about the Discourse install
+       list - List available plugins
+       help - This is it
+
+    Argument: all | core | optional | <module_name>
+       all - Every Plugin
+       core - Plugins set via environment variable PLUGIN_ENABLE_*=TRUE
+       optional - All other modules not explicitly set with PLUGIN_ENABLE_*=TRUE
+       plugin_name - The discourse plugin name
+EOF
+}
+
+get_env_plugins_enabled() {
+    set -o posix; set | sort | grep "^PLUGIN_ENABLE_.*=" | grep -i TRUE | cut -d _ -f 4- | cut -d = -f 1 | tr A-Z a-z
+}
+
+silent() {
+    if [ "${DEBUG_MODE,,}" = "true" ] || [ "${SHOW_OUTPUT,,}" = "true" ] || [ "${CONTAINER_LOG_LEVEL,,}" = "debug" ] ;  then
+        "$@"
+    else
+        "$@" > /dev/null 2>&1
+    fi
+}
+
+if [ -n "$1" ] ; then
+    case "${1,,}" in
+        "install" )
+            install_plugin "$2"
+        ;;
+        "remove" )
+            remove_plugin "$2"
+        ;;
+        "update" )
+            update_plugin "$2"
+        ;;
+        "enable" )
+            enable_plugin "$2"
+        ;;
+        "disable" )
+            disable_plugin "$2"
+        ;;
+        "info" )
+            # Default to 'help' when no sub-argument is provided so `plugin-tool info` shows detailed help
+            info "${2:-help}"
+        ;;
+        "list" )
+            list_plugin "$2"
+        ;;
+        "help" )
+            display_help "$2"
+        ;;
+    esac
+else
+    echo "Discourse Image Companion Tool"
+    echo "Commands: install | remove | update | enable | disable | list | info | help"
+fi

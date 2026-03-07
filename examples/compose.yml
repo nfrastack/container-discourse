@@ -2,7 +2,7 @@
 services:
   discourse-app:
     container_name: discourse-app
-    image: tiredofit/discourse:latest
+    image: docker.io/nfrastack/discourse:latest
     labels:
       - traefik.enable=true
       - traefik.http.routers.discourse-example-com.rule=Host(`discourse.example.com`)
@@ -11,9 +11,10 @@ services:
       - ./logs:/data/logs
       - ./data/uploads:/data/uploads
       - ./data/backups:/data/backups
+    ports:
+      - 3000:3000
     environment:
       - TIMEZONE=America/Vancouver
-      - CONTAINER_NAME=discourse-app
 
       - DB_HOST=discourse-db
       - DB_NAME=discourse
@@ -21,7 +22,6 @@ services:
       - DB_PASS=password
 
       - REDIS_HOST=discourse-redis
-
 
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_NAME=Admin User
@@ -31,13 +31,13 @@ services:
       - SITE_HOSTNAME=discourse.example.com
       - DELIVER_SECURE_ASSETS=TRUE
 
-      - SMTP_PORT=25
       - SMTP_FROM=noreply@example.com
       - SMTP_TLS=false
       - SMTP_DISABLE_STARTTLS=true
       - SMTP_PORT=25
       - SMTP_HOST=postfix-relay
-
+      #- ENABLE_DB_MIGRATE=FALSE
+      #- ENABLE_PRECOMPILE_ASSETS=FALSE
       - DEVELOPER_EMAILS=hostmaster@example.com
     restart: always
     networks:
@@ -46,35 +46,30 @@ services:
 
   discourse-db:
     container_name: discourse-db
-    image: tiredofit/postgres:17
-    restart: always
+    image: docker.io/nfrastack/postgres:17
     volumes:
-      - ./db:/var/lib/postgresql/data
+      - ./db:/data
     environment:
       - TIMEZONE=America/Vancouver
-      - CONTAINER_NAME=discourse-db
-
       - SUPERUSER_PASS=superuser
       - DB_NAME=discourse
       - DB_USER=discourse
       - DB_PASS=password
+    restart: always
     networks:
       - services
 
   discourse-redis:
-    image: tiredofit/redis:7
+    image: docker.io/nfrastack/redis:8-3.0.0
     container_name: discourse-redis
-    #volumes:
-    #  - ./redis:/var/lib/redis
     environment:
       - TIMEZONE=America/Vancouver
-      - CONTAINER_NAME=discourse-redis
+    restart: always
     networks:
       - services
-    restart: always
 
   discourse-db-backup:
-    image: tiredofit/db-backup
+    image: docker.io/tiredofit/db-backup
     container_name: discourse-db-backup
     volumes:
       - ./dbbackup:/backup
@@ -89,10 +84,9 @@ services:
       - DB01_BACKUP_INTERVAL=1440
       - DB01_BACKUP_BEGIN=0000
       - DB01_CLEANUP_TIME=8640
+    restart: always
     networks:
       - services
-    restart: always
-
 
 networks:
   proxy:

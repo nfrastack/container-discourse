@@ -1,104 +1,101 @@
-# github.com/tiredofit/docker-discourse
+# nfrastack/container-discourse
 
-[![GitHub release](https://img.shields.io/github/v/tag/tiredofit/docker-discourse?style=flat-square)](https://github.com/tiredofit/docker-discourse/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/tiredofit/docker-discourse/main.yml?branch=main&style=flat-square)](https://github.com/tiredofit/docker-discourse/actions)
-[![Docker Stars](https://img.shields.io/docker/stars/tiredofit/discourse.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/tiredofit/discourse/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/tiredofit/discourse.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/tiredofit/discourse/)
-[![Become a sponsor](https://img.shields.io/badge/sponsor-tiredofit-181717.svg?logo=github&style=flat-square)](https://github.com/sponsors/tiredofit)
-[![Paypal Donate](https://img.shields.io/badge/donate-paypal-00457c.svg?logo=paypal&style=flat-square)](https://www.paypal.me/tiredofit)
-
-* * *
 ## About
 
-This will build a Docker Image for [Discourse](https://www.discourse.org/) - A web based discussion forum.
+This will build a container image for [Discourse](https://www.discourse.org/) - A web based discussion forum.
 
 * Unlike the official Discourse image, this is meant to be self contained without requiring a base image or use the `launcher`
-* Additional Plugins installed
 * Flexible Volatile Storage
-
-
-[Changelog](CHANGELOG.md)
 
 ## Maintainer
 
-- [Dave Conroy](http://github/tiredofit/)
+* [Nfrastack](https://www.nfrastack.com)
 
 ## Table of Contents
 
-- [About](#about)
-- [Maintainer](#maintainer)
-- [Table of Contents](#table-of-contents)
-- [Prerequisites and Assumptions](#prerequisites-and-assumptions)
-- [Installation](#installation)
-  - [Build from Source](#build-from-source)
-  - [Prebuilt Images](#prebuilt-images)
-- [Configuration](#configuration)
-  - [Quick Start](#quick-start)
-  - [Persistent Storage](#persistent-storage)
-    - [Base Images used](#base-images-used)
-    - [Container Options](#container-options)
-    - [Admin Options](#admin-options)
-    - [Log Options](#log-options)
-    - [Performance Options](#performance-options)
-    - [Database Options](#database-options)
-      - [Postgresql](#postgresql)
-      - [Redis](#redis)
-    - [SMTP Options](#smtp-options)
-    - [Plugins](#plugins)
-  - [Networking](#networking)
-- [Maintenance](#maintenance)
-  - [Shell Access](#shell-access)
-- [Support](#support)
-  - [Usage](#usage)
-  - [Bugfixes](#bugfixes)
-  - [Feature Requests](#feature-requests)
-  - [Updates](#updates)
-- [License](#license)
+* [About](#about)
+* [Maintainer](#maintainer)
+* [Table of Contents](#table-of-contents)
+* [Prerequisites and Assumptions](#prerequisites-and-assumptions)
+* [Installation](#installation)
+  * [Prebuilt Images](#prebuilt-images)
+  * [Multi-Architecture Support](#multi-architecture-support)
+  * [Quick Start](#quick-start)
+  * [Persistent Storage](#persistent-storage)
+* [Environment Variables](#environment-variables)
+  * [Base Images used](#base-images-used)
+  * [Core Configuration](#core-configuration)
+  * [Admin Options](#admin-options)
+  * [Log Options](#log-options)
+  * [Performance Options](#performance-options)
+  * [Database Options](#database-options)
+    * [Postgresql](#postgresql)
+    * [Redis](#redis)
+  * [SMTP Options](#smtp-options)
+  * [Plugins](#plugins)
+* [Users and Groups](#users-and-groups)
+  * [Networking](#networking)
+* [Maintenance](#maintenance)
+  * [Shell Access](#shell-access)
+* [Support & Maintenance](#support--maintenance)
+* [References](#references)
+* [License](#license)
 
 ## Prerequisites and Assumptions
-*  Assumes you are using some sort of SSL terminating reverse proxy such as:
-   *  [Traefik](https://github.com/tiredofit/docker-traefik)
-   *  [Nginx](https://github.com/jc21/nginx-proxy-manager)
-   *  [Caddy](https://github.com/caddyserver/caddy)
-*  Requires access to a Postgres Server
-*  Requires access to a Redis Server
+
+* Assumes you are using some sort of SSL terminating reverse proxy such as:
+  * [Traefik](https://github.com/nfrastack/container-traefik)
+  * [Nginx](https://github.com/jc21/nginx-proxy-manager)
+  * [Caddy](https://github.com/caddyserver/caddy)
+* Requires access to a Postgres Server
+* Requires access to a Redis Server
 
 ## Installation
 
-### Build from Source
-Clone this repository and build the image with `docker build -t (imagename) .`
-
 ### Prebuilt Images
-Builds of the image are available on [Docker Hub](https://hub.docker.com/r/tiredofit/discourse)
 
-```bash
-docker pull docker.io/tiredofit/discourse:(imagetag)
+Feature limited builds of the image are available on the [Github Container Registry](https://github.com/nfrastack/container-discourse/pkgs/container/container-discourse) and [Docker Hub](https://hub.docker.com/r/nfrastack/discourse).
+
+To unlock advanced features, one must provide a code to be able to change specific environment variables from defaults. Support the development to gain access to a code.
+
+To get access to the image use your container orchestrator to pull from the following locations:
+
+```
+ghcr.io/nfrastack/container-discourse:(image_tag)
+docker.io/nfrastack/discourse:(image_tag)
 ```
 
-Builds of the image are also available on the [Github Container Registry](https://github.com/tiredofit/docker-discourse/pkgs/container/docker-discourse)
+Image tag syntax is:
 
-```
-docker pull ghcr.io/tiredofit/docker-discourse:(imagetag)
-```
+`<image>:<optional tag>-<optional_distribution>_<optional_distribution_variant>`
 
-The following image tags are available along with their tagged release based on what's written in the [Changelog](CHANGELOG.md):
+Example:
 
-| Container OS | Tag       |
-| ------------ | --------- |
-| Debian       | `:latest` |
+`ghcr.io/nfrastack/container-discourse:latest` or
 
-## Configuration
+`ghcr.io/nfrastack/container-discourse:1.0` or optionally
+
+`ghcr.io/nfrastack/container-discourse:1.0-alpine` or optinally
+
+`ghcr.io/nfrastack/container-discourse:alpine`
+
+* `latest` will be the most recent commit
+* An optional `tag` may exist that matches the [CHANGELOG](CHANGELOG.md) - These are the safest
+* If it is built for multiple distributions there may exist a value of `alpine` or `debian`
+* If there are multiple distribution variations it may include a version - see the registry for availability
+
+Have a look at the container registries and see what tags are available.
+
+#### Multi-Architecture Support
+
+Images are built for `amd64` by default, with optional support for `arm64` and other architectures.
 
 ### Quick Start
 
-- The quickest way to get started is using [docker-compose](https://docs.docker.com/compose/). See the examples folder for a working [compose.yml](examples/compose.yml) that can be modified for development or production use.
+* The quickest way to get started is using [docker-compose](https://docs.docker.com/compose/). See the examples folder for a working [compose.yml](examples/compose.yml) that can be modified for your use.
 
-- Set various [environment variables](#environment-variables) to understand the capabilities of this image.
-- Map [persistent storage](#data-volumes) for access to configuration and data files for backup.
-- Make [networking ports](#networking) available for public access if necessary
-
-**The first boot can take from 2 minutes - 5 minutes depending on your CPU to setup the proper schemas and precompile assets**
-
+* Map [persistent storage](#persistent-storage) for access to configuration and data files for backup.
+* Set various [environment variables](#environment-variables) to understand the capabilities of this image.
 
 ### Persistent Storage
 
@@ -106,24 +103,28 @@ The container operates heavily from the `/app` folder, however there are a few f
 
 | Directory       | Description       |
 | --------------- | ----------------- |
-| `/data/logs`    | Logfiles          |
+| `/logs`         | Logfiles          |
 | `/data/uploads` | Uploads Directory |
 | `/data/backups` | Backups Directory |
 | `/data/plugins` | Plugins Driectory |
 
+### Environment Variables
+
 #### Base Images used
 
-This image relies on a [Debian Linux](https://hub.docker.com/r/tiredofit/debian) base image that relies on an [init system](https://github.com/just-containers/s6-overlay) for added capabilities. Outgoing SMTP capabilities are handlded via `msmtp`. Individual container performance monitoring is performed by [zabbix-agent](https://zabbix.org). Additional tools include: `bash`,`curl`,`less`,`logrotate`,`nano`.
-
+This image relies on a customized base image in order to work.
 Be sure to view the following repositories to understand all the customizable options:
 
-| Image                                                  | Description                            |
-| ------------------------------------------------------ | -------------------------------------- |
-| [OS Base](https://github.com/tiredofit/docker-debian/) | Customized Image based on Debian Linux |
-| [Nginx](https://github.com/tiredofit/docker-nginx/)    | Nginx webserver                        |
+| Image                                                   | Description |
+| ------------------------------------------------------- | ----------- |
+| [OS Base](https://github.com/nfrastack/container-base/) | Base Image  |
 
+Below is the complete list of available options that can be used to customize your installation.
 
-#### Container Options
+* Variables showing an 'x' under the `Advanced` column can only be set if the containers advanced functionality is enabled.
+
+#### Core Configuration
+
 | Parameter                  | Description                                                        | Default                |
 | -------------------------- | ------------------------------------------------------------------ | ---------------------- |
 | `BACKUP_PATH`              | Place to store in app backups                                      | `{DATA_PATH}/backups/` |
@@ -144,29 +145,31 @@ Be sure to view the following repositories to understand all the customizable op
 | ------------- | ------------------------------------------- | --------------------- |
 | `ADMIN_USER`  | Username for admin                          | `admin`               |
 | `ADMIN_EMAIL` | Admin email address                         | `admin@example.com`   |
-| `ADMIN_PASS`  | Admin password - Must be over 10 characters | `tiredofit-discourse` |
+| `ADMIN_PASS`  | Admin password - Must be over 10 characters | `nfrastack-discourse` |
 | `ADMIN_NAME`  | Admin Name (First and Last)                 | `Admin User`          |
 
 #### Log Options
+
 | Parameter                | Description            | Default             |
 | ------------------------ | ---------------------- | ------------------- |
 | `LOG_FILE`               | Discourse Log File     | `discourse.log`     |
 | `LOG_LEVEL`              | Discourse Log Level    | `info`              |
-| `LOG_PATH`               | Path to store logfiles | `{DATA_PATH}/logs/` |
+| `LOG_PATH`               | Path to store logfiles | `/logs/`            |
 | `UNICORN_LOG_FILE`       | Unicorn Log            | `unicorn.log`       |
 | `UNICORN_LOG_ERROR_FILE` | Unicorn Error Log      | `unicorn_error.log` |
 | `SIDEKIQ_LOG_FILE`       | SideKiq Log            | `sidekiq.log`       |
 
 #### Performance Options
+
 | Parameter         | Description         | Default |
 | ----------------- | ------------------- | ------- |
 | `UNICORN_WORKERS` | How many Workers    | `8`     |
 | `SIDEKIQ_THREADS` | Sidekiq Concurrency | `25`    |
 
-
 #### Database Options
 
 ##### Postgresql
+
 | Parameter            | Description                                   | Default |
 | -------------------- | --------------------------------------------- | ------- |
 | `DB_POOL`            | How many Database connections                 | `8`     |
@@ -179,6 +182,7 @@ Be sure to view the following repositories to understand all the customizable op
 | `DB_HOST`            | Hostname of Database Server                   |         |
 
 ##### Redis
+
 | Parameter                    | Description                                 | Default |
 | ---------------------------- | ------------------------------------------- | ------- |
 | `REDIS_DB`                   | Redis Database Number                       | `0`     |
@@ -187,6 +191,7 @@ Be sure to view the following repositories to understand all the customizable op
 | `REDIS_SKIP_CLIENT_COMMANDS` | Skip client commands if unsupported         | `FALSE` |
 
 #### SMTP Options
+
 | Parameter             | Description                              | Default         |
 | --------------------- | ---------------------------------------- | --------------- |
 | `SMTP_AUTHENTICATION` | SMTP Authentication type `plain` `login` | `plain`         |
@@ -200,6 +205,9 @@ Be sure to view the following repositories to understand all the customizable op
 | `SMTP_TLS_VERIFY`     | TLS Certificate verification             | `none`          |
 
 #### Plugins
+
+Presently not working
+
 | Parameter                          | Description                   | Default                |
 | ---------------------------------- | ----------------------------- | ---------------------- |
 | `PLUGIN_PATH`                      | Path where plugins are stored | `{DATA_PATH}/plugins/` |
@@ -225,48 +233,41 @@ Be sure to view the following repositories to understand all the customizable op
 | `PLUGIN_ENABLE_STYLEGUIDE`         |                               | `TRUE`                 |
 | `PLUGIN_ENABLE_VOTING`             |                               | `FALSE`                |
 
+## Users and Groups
+
+| Type  | Name        | ID   |
+| ----- | ----------- | ---- |
+| User  | `discourse` | 9009 |
+| Group | `discourse` | 9009 |
+
 ### Networking
 
-The following ports are exposed.
-
-| Port   | Description |
-| ------ | ----------- |
-| `3000` | Unicorn     |
+| Port   | Protocol | Description    |
+| ------ | -------- | -------------- |
+| `3000` | tcp      | Unicorn Daemon |
 
 * * *
+
 ## Maintenance
 
 ### Shell Access
 
-For debugging and maintenance purposes you may want access the containers shell.
-
-``bash
-docker exec -it (whatever your container name is) bash
-``
+For debugging and maintenance, `bash` and `sh` are available in the container.
 
 Try using the command `rake --tasks`
 
-## Support
+## Support & Maintenance
 
-These images were built to serve a specific need in a production environment and gradually have had more functionality added based on requests from the community.
-### Usage
-- The [Discussions board](../../discussions) is a great place for working with the community on tips and tricks of using this image.
-- [Sponsor me](https://tiredofit.ca/sponsor) for personalized support
-### Bugfixes
-- Please, submit a [Bug Report](issues/new) if something isn't working as expected. I'll do my best to issue a fix in short order.
+* For community help, tips, and community discussions, visit the [Discussions board](/discussions).
+* For personalized support or a support agreement, see [Nfrastack Support](https://nfrastack.com/).
+* To report bugs, submit a [Bug Report](issues/new). Usage questions will be closed as not-a-bug.
+* Feature requests are welcome, but not guaranteed. For prioritized development, consider a support agreement.
+* Updates are best-effort, with priority given to active production use and support agreements.
 
-### Feature Requests
-- Feel free to submit a feature request, however there is no guarantee that it will be added, or at what timeline.
-- [Sponsor me](https://tiredofit.ca/sponsor) regarding development of features.
+## References
 
-### Updates
-- Best effort to track upstream changes, More priority if I am actively using the image in a production environment.
-- [Sponsor me](https://tiredofit.ca/sponsor) for up to date releases.
+* <https://www.discourse.org>
 
 ## License
-MIT. See [LICENSE](LICENSE) for more details.
-# References
 
-* https://www.discourse.org
-
-
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

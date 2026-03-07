@@ -1,20 +1,25 @@
 #!/command/with-contenv bash
+# SPDX-FileCopyrightText: © 2025 Dave Conroy <code@nfrastack.com>
+#
+# SPDX-License-Identifier: MIT
 
-source /assets/functions/00-container
-prepare_service
-PROCESS_NAME="rails"
+source /container/base/functions/container/init
+prepare_service 20-discourse
+#prepare_service
+SERVICE_NAME="rails"
 
 check_container_initialized
-liftoff
+
 
 if var_true "${DELIVER_SECURE_ASSETS}" ; then export DISCOURSE_FORCE_HTTPS=true ; fi
 export DISCOURSE_SITE_TITLE=${SITE_TITLE}
 export UNICORN_WORKERS=${UNICORN_WORKERS}
 
+liftoff
+print_start "Starting Unicorn - Discourse $(grep -o "ADD: Discourse .* |" /container/build/${IMAGE_NAME/\//_}/build.log | awk '{print $3}')"
 cd /app/
-print_start "Starting Unicorn - Discourse version ${DISCOURSE_VERSION}"
-s6-setuidgid discourse \
-                    exec bin/unicorn \
+exec sudo -Eu "${DISCOURSE_USER}" RUN_PITCHFORK=0 \
+                                bin/unicorn \
                                     -E production \
                                     -o 0.0.0.0 \
                                     -p "${LISTEN_PORT}" \

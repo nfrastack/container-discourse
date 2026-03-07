@@ -1,0 +1,23 @@
+#!/command/with-contenv bash
+# SPDX-FileCopyrightText: © 2025 Dave Conroy <code@nfrastack.com>
+#
+# SPDX-License-Identifier: MIT
+
+source /container/base/functions/container/init
+prepare_service 20-discourse
+SERVICE_NAME="sidekiq"
+
+check_container_initialized
+check_service_initialized 20-discourse
+liftoff
+
+print_start "Starting Sidekiq"
+cd /app/
+silent exec sudo -Eu "${DISCOURSE_USER}" \
+                            bundle exec sidekiq \
+                                --concurrency "${SIDEKIQ_THREADS}" \
+                                --environment production \
+                                ${SIDEKIQ_ADDITIONAL_ARGS} | write_file -a "${DISCOURSE_USER}" "${LOG_PATH%/}"/"${SIDEKIQ_LOG_FILE}"
+
+
+#--logfile "${LOG_PATH%/}"/"${SIDEKIQ_LOG_FILE}" \
