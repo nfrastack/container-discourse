@@ -201,13 +201,13 @@ Below is the complete list of available options that can be used to customize yo
 
 This image includes a collection of Discourse plugins bundled under `/container/data/discourse/plugins` and supports user-provided plugins set by `PLUGIN_PATH`
 
-| Parameter              | Description                                                              | Default                    |
-| ---------------------- | ------------------------------------------------------------------------ | -------------------------- |
-| `PLUGIN_PATH`          | Path where plugins are stored                                            | `{DATA_PATH}/plugins/`     |
-| `PLUGIN_PRIORITY`      | Which source to prefer when a plugin exists in both `image` and `host`.  | `host`                     |
-| `PLUGIN_ENABLED_PATH`  | Where enabled plugins (symlinks) are created for Discourse to load them. | `/app/plugins`             |
-| `PLUGIN_ENABLE_<NAME>` | Enable Plugin via normalized name `TRUE` `FALSE`                         |                            |
-| `PLUGIN_TOOL_COMMAND`  | Command when configuring plugins on container startup                    | `plugin-tool sync` |
+| Parameter              | Description                                                              | Default                |
+| ---------------------- | ------------------------------------------------------------------------ | ---------------------- |
+| `PLUGIN_PATH`          | Path where plugins are stored                                            | `{DATA_PATH}/plugins/` |
+| `PLUGIN_PRIORITY`      | Which source to prefer when a plugin exists in both `image` and `host`.  | `host`                 |
+| `PLUGIN_ENABLED_PATH`  | Where enabled plugins (symlinks) are created for Discourse to load them. | `/app/plugins`         |
+| `PLUGIN_ENABLE_<NAME>` | Enable Plugin via normalized name `TRUE` `FALSE`                         |                        |
+| `PLUGIN_TOOL_COMMAND`  | Command when configuring plugins on container startup                    | `plugin-tool sync`     |
 
 >>`<NAME>` may be the short plugin name or include a `discourse_`/`discourse-` prefix.
 >> Examples:
@@ -221,13 +221,13 @@ Plugins Enabled from Image, override with `FALSE` value, Use `plugin-tool list a
 
 | Plugin Environment Variable   | Enabled |
 | ----------------------------- | ------- |
-| `PLUGIN_ENABLE_CHECKLIST`     |         `TRUE` |
-| `PLUGIN_ENABLE_DETAILS`       |         `TRUE` |
-| `PLUGIN_ENABLE_NARRATIVE_BOT` |         `TRUE` |
-| `PLUGIN_ENABLE_POLL`          |         `TRUE` |
-| `PLUGIN_ENABLE_PRESENCE`      |         `TRUE` |
-| `PLUGIN_ENABLE_REACTIONS`     |         `TRUE` |
-| `PLUGIN_ENABLE_STYLEGUIDE`    |         `TRUE` |
+| `PLUGIN_ENABLE_CHECKLIST`     | `TRUE`  |
+| `PLUGIN_ENABLE_DETAILS`       | `TRUE`  |
+| `PLUGIN_ENABLE_NARRATIVE_BOT` | `TRUE`  |
+| `PLUGIN_ENABLE_POLL`          | `TRUE`  |
+| `PLUGIN_ENABLE_PRESENCE`      | `TRUE`  |
+| `PLUGIN_ENABLE_REACTIONS`     | `TRUE`  |
+| `PLUGIN_ENABLE_STYLEGUIDE`    | `TRUE`  |
 
 >> Notes
 >> Host plugins (in `PLUGIN_PATH`) take precedence by default. Set `PLUGIN_PRIORITY=image` to prefer the packaged image plugins instead.
@@ -318,32 +318,32 @@ Reconcile environment-driven enables/disables (sync examples):
 PLUGIN_ENABLE_AI=TRUE
 PLUGIN_ENABLE_OLD=FALSE
 
-/usr/local/bin/plugin-tool sync --dry-run
+plugin-tool sync --dry-run
 
 # Apply changes and prune any enabled symlink not explicitly set TRUE:
-/usr/local/bin/plugin-tool sync --prune
+plugin-tool sync --prune
 ```
 
 If you need more detail, run `plugin-tool help` inside the container to see the full command reference.
 
 Advanced install examples (git & archives)
 
-Install directly from a git repository (auto-derived name):
+Install directly from a git repository (auto-derived name minus discourse prefix):
 
 ```bash
-/usr/local/bin/plugin-tool install https://github.com/discourse/discourse-ai.git
+plugin-tool install https://github.com/discourse/discourse-ai.git
 ```
 
 Install from a git repo into an explicit name and branch:
 
 ```bash
-/usr/local/bin/plugin-tool install mymod https://github.com/org/repo.git my-branch
+plugin-tool install myplugin https://github.com/org/repo.git my-branch
 ```
 
 Install from an archive URL (zip/tar.gz/zst):
 
 ```bash
-/usr/local/bin/plugin-tool install https://example.com/plugins/discourse-foo.tar.gz
+plugin-tool install https://example.com/plugins/discourse-foo.tar.gz
 ```
 
 ## Users and Groups
