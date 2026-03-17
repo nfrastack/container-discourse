@@ -147,7 +147,7 @@ Below is the complete list of available options that can be used to customize yo
 | `LOG_FILE`               | Discourse Log File     | `discourse.log`     |          |
 | `LOG_LEVEL`              | Discourse Log Level    | `info`              |          |
 | `LOG_PATH`               | Path to store logfiles | `/logs/`            |          |
-| `PLUGIN_LOG_FILE`        | Plugin operations file | `plugin.log         |          |
+| `PLUGIN_LOG_FILE`        | Plugin operations file | `plugin.log`        |          |
 | `UNICORN_LOG_FILE`       | Unicorn Log            | `unicorn.log`       |          |
 | `UNICORN_LOG_ERROR_FILE` | Unicorn Error Log      | `unicorn_error.log` |          |
 | `SIDEKIQ_LOG_FILE`       | SideKiq Log            | `sidekiq.log`       |          |
