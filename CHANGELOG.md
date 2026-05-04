@@ -1,3 +1,9 @@
+## 4.0.2 2026-05-04 <code at nfrastack dot com>
+
+   ### Changed
+      - Support using Pitchfork and phase out unicorn usage (credit sayem314@github)
+
+
 ## 4.0.1 2026-04-28 <code at nfrastack dot com>
 
    ### Added

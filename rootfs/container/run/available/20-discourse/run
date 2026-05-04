@@ -10,27 +10,25 @@ SERVICE_NAME="rails"
 
 check_container_initialized
 
+if [ -f /app/bin/unicorn ] && [ -f /app/config/unicorn.conf.rb ]; then
+    app_cmd=unicorn
+    export UNICORN_WORKERS=${UNICORN_WORKERS}
+    app_args=${UNICORN_ADDITIONAL_ARGS}
+else
+    app_cmd=pitchfork
+    app_args=${PITCHFORK_ADDITIONAL_ARGS}
+fi
 
 if var_true "${DELIVER_SECURE_ASSETS}" ; then export DISCOURSE_FORCE_HTTPS=true ; fi
 export DISCOURSE_SITE_TITLE=${SITE_TITLE}
-export UNICORN_WORKERS=${UNICORN_WORKERS}
 
 liftoff
-if [ -f /app/bin/unicorn ] && [ -f /app/config/unicorn.conf.rb ]; then
-  app_server_cmd=bin/unicorn
-  app_server_conf=config/unicorn.conf.rb
-  print_start "Starting Unicorn - Discourse $(grep -o "ADD: Discourse .* |" /container/build/${IMAGE_NAME/\//_}/build.log | awk '{print $3}')"
-else
-  app_server_cmd=bin/pitchfork
-  app_server_conf=config/pitchfork.conf.rb
-  print_start "Starting Discourse $(grep -o "ADD: Discourse .* |" /container/build/${IMAGE_NAME/\//_}/build.log | awk '{print $3}')"
-fi
 
+print_start "Starting Discourse (${app_cmd} $(grep -o "ADD: Discourse .* |" /container/build/${IMAGE_NAME/\//_}/build.log | awk '{print $3}'))"
 cd /app/
 exec sudo -Eu "${DISCOURSE_USER}" RUN_PITCHFORK=0 \
-                                ${app_server_cmd} \
+                                /app/bin/${app_cmd} \
                                   -E production \
                                   -o 0.0.0.0 \
                                   -p "${LISTEN_PORT}" \
-                                  -c "${app_server_conf}" ${UNICORN_ADDITIONAL_ARGS}
-
+                                  -c /app/config/${app_cmd}.conf.rb ${app_args}
