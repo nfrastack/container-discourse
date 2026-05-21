@@ -18,7 +18,7 @@ LABEL \
         org.opencontainers.image.licenses="MIT"
 
 ARG \
-    DISCOURSE_VERSION="v2026.4.0" \
+    DISCOURSE_VERSION="v2026.4.1" \
     DISCOURSE_REPO_URL="https://github.com/discourse/discourse" \
     ruby_version="3.4" \
     NODE_VERSION="24" \
