@@ -18,11 +18,11 @@ LABEL \
         org.opencontainers.image.licenses="MIT"
 
 ARG \
-    DISCOURSE_VERSION="v2026.7.1" \
+    DISCOURSE_VERSION="v2026.8.0" \
     DISCOURSE_REPO_URL="https://github.com/discourse/discourse" \
     ruby_version="3.4" \
     NODE_VERSION="24" \
-    OXIPNG_VERSION="v9.1.5" \
+    OXIPNG_VERSION="v10.2.0" \
     OXIPNG_REPO_URL="https://github.com/oxipng/oxipng" \
     DISCOURSE_USER \
     DISCOURSE_GROUP

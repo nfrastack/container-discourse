@@ -1,3 +1,10 @@
+## 4.0.6 2026-08-25 <code at nfrastack dot com>
+
+   ### Added
+      - Discourse 2026.8.0
+      - OptiPNG 10.2.0
+
+
 ## 4.0.5 2026-07-31 <code at nfrastack dot com>
 
    ### Added
