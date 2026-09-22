@@ -1,3 +1,10 @@
+## 4.0.7 2026-09-22 <code at nfrastack dot com>
+
+   ### Added
+      - Discourse 2026.9.0
+      - OxiPNG 10.2.1
+
+
 ## 4.0.6 2026-08-25 <code at nfrastack dot com>
 
    ### Added
